@@ -130,6 +130,11 @@ def parse_args():
         default=7.0,
         help="Classifier-free guidance scale"
     )
+    parser.add_argument(
+        "--nfe",
+        type=int,
+        default=28
+    )
     # residual
     parser.add_argument("--residual_target_layers", type=int, nargs="+", default=None)
     parser.add_argument("--residual_origin_layer", type=int, default=None)
@@ -285,6 +290,7 @@ def main(args):
                         prompt=prompt,
                         seed=args.seed + sample_count,
                         guidance_scale=args.cfg,   # ← 新增
+                        num_inference_steps=args.nfe,
                         residual_target_layers=args.residual_target_layers,
                         residual_origin_layer=args.residual_origin_layer,
                         residual_weights=args.residual_weights,

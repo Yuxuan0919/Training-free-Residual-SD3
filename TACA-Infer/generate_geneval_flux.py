@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--img_size", type=int, default=1024)
     parser.add_argument("--num_inference_steps", type=int, default=50)
     parser.add_argument("--guidance_scale", type=float, default=3.5)
-    parser.add_argument("--lora_weights", type=str, default="/inspire/hdd/project/chineseculture/public/yuxuan/TACA/TACA/flux-dev-lora-rank-64.safetensors")
+    parser.add_argument("--lora_weights", type=str, default="/inspire/hdd/project/chineseculture/public/yuxuan/TACA/TACA/flux-dev-lora-rank-16.safetensors")
     parser.add_argument("--world_size", type=int, default=1)
     parser.add_argument("--rank", type=int, default=0)
 
@@ -69,7 +69,6 @@ def main(args: argparse.Namespace) -> None:
     pipe = FluxPipeline.from_pretrained(
         args.model_path,
         torch_dtype=torch.bfloat16,
-        trust_remote_code=True,
     ).to(device)
     # pipe.set_progress_bar_config(disable=True)
 

@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # =============== 阶段 0：环境 ===============
-source /inspire/hdd/project/chineseculture/yaoyuxuan-CZXS25220085/p-yaoyuxuan/REPA-SD3-1/flux/.venv_diffusers/bin/activate
+source /inspire/hdd/project/chineseculture/public/yuxuan/miniconda3/etc/profile.d/conda.sh
+conda activate flux_taca
 cd /inspire/hdd/project/chineseculture/public/yuxuan/Training-free-Residual-SD3/TACA-Infer
 
 MODEL='flux'
@@ -62,7 +63,6 @@ for GPU_ID in $(seq 0 $((WORLD_SIZE-1))); do
         --guidance_scale $CFG \
         --num_inference_steps $NFE \
         --img_size $IMGSIZE \
-        --batch_size $BATCHSIZE \
         --save_dir "$DPG_OUTDIR" \
         --world_size $WORLD_SIZE \
         --rank $GPU_ID \

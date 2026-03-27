@@ -1,3 +1,7 @@
+from hf_compat import apply_transformers_peft_compat
+
+apply_transformers_peft_compat()
+
 import torch
 from typing import Optional, List, Dict, Any, Union
 from diffusers.pipelines.flux.pipeline_flux import (

@@ -33,12 +33,12 @@ def make_grid_2x2(imgs):
     grid.paste(imgs[3], (w, h))
     return grid
 
-# -------------------------- 主函数（仅保留单卡+固定seed=42~45）--------------------------
+# -------------------------- 主函数（单卡/多进程分片，支持自定义基础 seed）--------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    # 基础参数（固定seed为42，n_samples=4）
-    parser.add_argument("--seed", type=int, default=42, help="基础随机种子（固定为42）", choices=[42])  # 强制只能用42
+    # 基础参数（DPG 固定每个 prompt 生成 4 张图，seed 为基础 seed，实际样本使用 seed~seed+3）
+    parser.add_argument("--seed", type=int, default=42, help="基础随机种子（每个 prompt 的 4 个样本使用 seed~seed+3）")
     parser.add_argument("--num_inference_steps", type=int, default=50, help="Flux常用步数")
     parser.add_argument("--guidance_scale", type=float, default=3.5, help="Flux推荐引导尺度")
     parser.add_argument("--n_samples", type=int, default=4, help="每个prompt生成4张图（固定）", choices=[4])  # 强制4张
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.residual_use_layernorm = bool(args.residual_use_layernorm)
-    set_seed(args.seed)  # 全局基础seed=42
+    set_seed(args.seed)  # 全局基础 seed
 
     # 设备配置：强制单卡GPU
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         "residual_rotation_meta": residual_rotation_meta,
     }
 
-    # -------------------------- DPG核心流程（固定seed=42~45）--------------------------
+    # -------------------------- DPG 核心流程（每个 prompt 生成 4 个不同 seed 的样本）--------------------------
     os.makedirs(args.save_dir, exist_ok=True)
 
     # 扫描prompt文件（单卡处理所有prompt）
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         txt_files = [f for i, f in enumerate(txt_files) if i % args.world_size == args.rank]
     total_prompts = len(txt_files)
     print(f"[DPG] 单卡运行，共处理 {total_prompts} 个prompt")
-    print(f"[Seed配置] 每个prompt的4个样本seed固定为：{args.seed}、{args.seed+1}、{args.seed+2}、{args.seed+3}")
+    print(f"[Seed配置] 每个prompt的4个样本seed为：{args.seed}、{args.seed+1}、{args.seed+2}、{args.seed+3}")
 
     # 遍历每个prompt生成
     for prompt_idx, txt_path in enumerate(txt_files):
@@ -168,13 +168,13 @@ if __name__ == "__main__":
             f"权重: {residual_config['residual_weights']}"
         )
 
-        # 生成4张图像（seed固定为42、43、44、45，不叠加任何索引）
+        # 生成 4 张图像，样本 seed 为基础 seed 加样本索引，不叠加 prompt 索引
         with torch.inference_mode():
             imgs = []
             for sample_idx in range(args.n_samples):
-                # 核心：固定seed=42+sample_idx（每个prompt都复用这4个seed）
+                # 每个 prompt 内部复用基础 seed 对应的 4 个样本 seed
                 sample_seed = args.seed + sample_idx
-                set_seed(sample_seed)  # 每个样本单独固定seed
+                set_seed(sample_seed)  # 每个样本单独固定 seed
 
                 result = pipe(
                     prompt=prompt,
@@ -187,7 +187,7 @@ if __name__ == "__main__":
                     **residual_config
                 )
                 imgs.append(result.images[0])
-                print(f"[Seed] 样本{sample_idx} → {sample_seed}")  # 明确打印seed，确认符合要求
+                print(f"[Seed] 样本{sample_idx} → {sample_seed}")
 
         # 拼接2x2网格并保存
         grid = make_grid_2x2(imgs)
